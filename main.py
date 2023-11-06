@@ -1,16 +1,55 @@
-# This is a sample Python script.
+from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+import yfinance as yf
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 
-# Press Umschalt+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# Daten für Bitcoin in Euro herunterladen
+data = yf.download('BTC-EUR', start='2016-01-01', end=datetime.today().strftime('%Y-%m-%d'))
 
+# Aktueller Preis
+current_price = data['Close'][-1]
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Strg+F8 to toggle the breakpoint.
+# 'Close' Preis als Zielvariable verwenden
+data['Prediction'] = data['Close'].shift(-1)
 
+# Die letzten 'n' Zeilen entfernen
+n = 30  # Anzahl der Tage, die wir vorhersagen möchten
+data = data[:-n]
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+# Unabhängige Datensatz erstellen
+X = np.array(data.drop(['Prediction'], axis=1))
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+# Zielvariable erstellen
+y = np.array(data['Prediction'])
+
+# Daten in Trainings- und Testdaten aufteilen
+x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+# Lineares Regressionsmodell erstellen
+lr = LinearRegression()
+
+# Modell trainieren
+lr.fit(x_train, y_train)
+
+# Modell testen
+lr_confidence = lr.score(x_test, y_test)
+print("lr confidence: ", lr_confidence)
+
+# 'n' Zeilen des originalen Datensatzes anzeigen
+x_forecast = np.array(data.drop(['Prediction'], axis=1))[-n:]
+
+# Vorhersage für die nächsten 'n' Tage
+lr_prediction = lr.predict(x_forecast)
+print(lr_prediction)
+
+# Diagramm erstellen
+plt.figure(figsize=(12,6))
+plt.plot(range(len(lr_prediction)), lr_prediction, color='blue', linestyle='-', label='Predicted Price')
+plt.scatter(0, current_price, color='red', label='Current Price')  # Aktuellen Preis anzeigen
+plt.title('Bitcoin price prediction for next 30 days')
+plt.xlabel('Days')
+plt.ylabel('Price (€)')
+plt.legend()
+plt.show()
