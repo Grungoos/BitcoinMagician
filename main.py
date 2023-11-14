@@ -15,29 +15,34 @@ import yfinance as yf
 # Setzen der Umgebungsvariablen für oneDNN (optional, abhängig von Ihrem Bedarf)
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
+
 def download_data(ticker, start_date):
     # Daten für Bitcoin in Euro herunterladen
     data = yf.download(ticker, start=start_date, end=datetime.today().strftime('%Y-%m-%d'))
     # 'Close' Preis als Zielvariable verwenden
     return data[['Close']]
 
+
 def normalize_data(data):
     # Daten normalisieren
     scaler = MinMaxScaler(feature_range=(0, 1))
     return scaler, scaler.fit_transform(data)
 
+
 def create_train_val_datasets(data, test_size=0.2):
     # Trainings- und Validierungsdaten aufteilen
     return train_test_split(data, test_size=test_size, shuffle=False)
+
 
 def prepare_lstm_datasets(data, time_steps=60):
     # Trainingsdaten in x und y aufteilen
     x_data, y_data = [], []
     for i in range(time_steps, len(data)):
-        x_data.append(data[i-time_steps:i, 0])
+        x_data.append(data[i - time_steps:i, 0])
         y_data.append(data[i, 0])
     x_data, y_data = np.array(x_data), np.array(y_data)
     return np.reshape(x_data, (x_data.shape[0], x_data.shape[1], 1)), y_data
+
 
 def build_lstm_model(input_shape):
     # LSTM-Modell erstellen mit Dropout und Regularisierung
@@ -53,11 +58,14 @@ def build_lstm_model(input_shape):
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
 
+
 def fit_model(model, x_train, y_train, x_val, y_val):
     # Early Stopping einrichten
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     # Modell trainieren
-    return model.fit(x_train, y_train, epochs=100, batch_size=60, validation_data=(x_val, y_val), callbacks=[early_stopping])
+    return model.fit(x_train, y_train, epochs=100, batch_size=60, validation_data=(x_val, y_val),
+                     callbacks=[early_stopping])
+
 
 def predict_future_values(model, data, scaler, n=30):
     # Vorhersage für die nächsten 'n' Tage
@@ -66,13 +74,14 @@ def predict_future_values(model, data, scaler, n=30):
     for i in range(n):
         y_hat = model.predict(current_batch, verbose=0)[0][0]
         predictions.append(y_hat)
-        current_batch = np.append(current_batch[:,1:,:], [[[y_hat]]], axis=1)
+        current_batch = np.append(current_batch[:, 1:, :], [[[y_hat]]], axis=1)
     # Vorhersagen in den ursprünglichen Wertebereich zurücktransformieren
     return scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
 
+
 def plot_predictions(predictions):
     # Diagramm erstellen
-    plt.figure(figsize=(12,6))
+    plt.figure(figsize=(12, 6))
     plt.plot(range(len(predictions)), predictions, color='blue', label='Predicted Bitcoin Price')
     plt.title('Bitcoin Price Prediction for next 30 days')
     plt.xlabel('Days')
@@ -80,11 +89,13 @@ def plot_predictions(predictions):
     plt.legend()
     plt.show()
 
+
 def evaluate_model(y_true, y_pred):
     mse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mse)  # RMSE ist einfach die Wurzel aus MSE
     return mse, mae, rmse
+
 
 # Anwendung der Funktionen
 data = download_data('BTC-EUR', '2014-01-01')
