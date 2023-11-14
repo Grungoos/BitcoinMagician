@@ -1,16 +1,15 @@
 import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Dropout
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.regularizers import l1_l2
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+import matplotlib.pyplot as plt
+import numpy as np
 import yfinance as yf
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.layers import Dense, LSTM, Dropout
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.regularizers import l1_l2
 
 # Setzen der Umgebungsvariablen für oneDNN (optional, abhängig von Ihrem Bedarf)
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -44,13 +43,13 @@ def prepare_lstm_datasets(data, time_steps=60):
     return np.reshape(x_data, (x_data.shape[0], x_data.shape[1], 1)), y_data
 
 
-def build_lstm_model(input_shape):
+def build_lstm_model(input_shape, dropout_rate1=0.6, dropout_rate2=0.7):
     # LSTM-Modell erstellen mit Dropout und Regularisierung
     model = Sequential([
         LSTM(50, return_sequences=True, input_shape=input_shape, kernel_regularizer=l1_l2(0.01, 0.01)),
-        Dropout(0.2),
+        Dropout(dropout_rate1),  # Erste Dropout-Rate
         LSTM(50, return_sequences=False, kernel_regularizer=l1_l2(0.01, 0.01)),
-        Dropout(0.2),
+        Dropout(dropout_rate2),  # Zweite Dropout-Rate
         Dense(25, kernel_regularizer=l1_l2(0.01, 0.01)),
         Dense(1)
     ])
