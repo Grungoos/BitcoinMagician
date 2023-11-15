@@ -33,6 +33,36 @@ def create_train_val_datasets(data, test_size=0.2):
     return train_test_split(data, test_size=test_size, shuffle=False)
 
 
+def add_technical_indicators(dataframe):
+    # Simple Moving Average
+    dataframe['SMA'] = dataframe['Close'].rolling(window=20).mean()
+    # Exponential Moving Average
+    dataframe['EMA'] = dataframe['Close'].ewm(span=20, adjust=False).mean()
+    # Relative Strength Index
+    delta = dataframe['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    dataframe['RSI'] = 100 - (100 / (1 + rs))
+
+    # Moving Average Convergence Divergence
+    exp1 = dataframe['Close'].ewm(span=12, adjust=False).mean()
+    exp2 = dataframe['Close'].ewm(span=26, adjust=False).mean()
+    dataframe['MACD'] = exp1 - exp2
+    dataframe['MACD_signal'] = dataframe['MACD'].ewm(span=9, adjust=False).mean()
+
+    # Bollinger Bands
+    sma = dataframe['Close'].rolling(window=20).mean()
+    rstd = dataframe['Close'].rolling(window=20).std()
+    dataframe['BB_upper'] = sma + 2 * rstd
+    dataframe['BB_lower'] = sma - 2 * rstd
+
+    # Entfernen der NaN Werte, die durch die Berechnung der Indikatoren entstehen
+    dataframe.fillna(method='bfill', inplace=True)
+
+    return dataframe
+
+
 def prepare_lstm_datasets(data, time_steps=60):
     # Trainingsdaten in x und y aufteilen
     x_data, y_data = [], []
